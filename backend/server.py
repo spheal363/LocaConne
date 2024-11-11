@@ -58,6 +58,7 @@ def post_content():
 
     # 抽出した場所をprintで表示
     print(f"Extracted locations from text: {locations}")
+    
 
     # 画像解析によるランドマーク検出
     landmarks = []
