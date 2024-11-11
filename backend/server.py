@@ -78,6 +78,7 @@ def post_content():
                 "description": result.get("description", {}).get("value", "No description available")
             })
 
+
     # データベースに投稿を保存
     cursor = mydb.cursor()
     sql = "INSERT INTO posts (text, image_url) VALUES (%s, %s)"
