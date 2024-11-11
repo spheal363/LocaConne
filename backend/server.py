@@ -9,16 +9,15 @@ from datetime import datetime  # 追加
 # Flaskアプリケーションのセットアップ
 app = Flask(__name__)
 
-
 # spaCyのモデル読み込み
 nlp: spacy.Language = spacy.load('ja_ginza')
 
 # Google Cloud Vision APIのクライアント設定
-vision_client = vision.ImageAnnotatorClient()
+vision_client = vision.ImageAnnotatorClient.from_service_account_file('/home/sdoi/LocaConne/locaconne-04406335c642.json')
 
 # Cloud Storageのクライアント設定
-storage_client = storage.Client()
-bucket_name = "your-cloud-storage-bucket-name"
+storage_client = storage.Client.from_service_account_json('/home/sdoi/LocaConne/locaconne-04406335c642.json')
+bucket_name = "locaconne_bucket"
 
 # コネクションの作成
 conn = mydb.connect(
@@ -57,6 +56,10 @@ def post_content():
     doc = nlp(text)
     locations = [ent.text for ent in doc.ents if ent.label_ == "GPE"]
 
+    # 抽出した場所をprintで表示
+    print(f"Extracted locations from text: {locations}")
+    
+
     # 画像解析によるランドマーク検出
     landmarks = []
     if image_url:
@@ -65,6 +68,9 @@ def post_content():
         response = vision_client.landmark_detection(image=vision_image)
         for landmark in response.landmark_annotations:
             landmarks.append(landmark.description)
+
+    # 画像解析で検出したランドマークをprintで表示
+    print(f"Detected landmarks from image: {landmarks}")
 
     # 抽出した場所情報をもとにWikidataから詳細を取得
     details = []
