@@ -312,4 +312,5 @@ def main():
 
 # メイン関数
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Flaskアプリケーションをホスト0.0.0.0でポート5000で起動
+    app.run(host='0.0.0.0', port=5000, debug=True)
