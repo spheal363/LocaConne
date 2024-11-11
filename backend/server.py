@@ -6,6 +6,7 @@ import mysql.connector as mydb
 from SPARQLWrapper import SPARQLWrapper, JSON
 from datetime import datetime  # 追加
 
+
 # Flaskアプリケーションのセットアップ
 app = Flask(__name__)
 
