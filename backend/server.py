@@ -1,6 +1,6 @@
 # 必要なモジュールのインポート
 from flask import Flask, request, jsonify, render_template, redirect
-import spacy
+import MeCab, unidic_lite, re, hashlib
 from google.cloud import vision, storage
 import mysql.connector as mydb
 from SPARQLWrapper import SPARQLWrapper, JSON
@@ -9,22 +9,20 @@ from datetime import datetime  # 追加
 # Flaskアプリケーションのセットアップ
 app = Flask(__name__)
 
-# spaCyのモデル読み込み
-nlp: spacy.Language = spacy.load('ja_ginza')
-
 # Google Cloud Vision APIのクライアント設定
-vision_client = vision.ImageAnnotatorClient.from_service_account_file('/home/sdoi/LocaConne/locaconne-04406335c642.json')
+vision_client = vision.ImageAnnotatorClient.from_service_account_file(
+    "/home/sdoi/LocaConne/locaconne.json"
+)
 
 # Cloud Storageのクライアント設定
-storage_client = storage.Client.from_service_account_json('/home/sdoi/LocaConne/locaconne-04406335c642.json')
+storage_client = storage.Client.from_service_account_json(
+    "/home/sdoi/LocaConne/locaconne.json"
+)
 bucket_name = "locaconne_bucket"
 
 # コネクションの作成
 conn = mydb.connect(
-    host='23.251.151.188',
-    port='3306',
-    user='root',
-    database='locaconne_schema'
+    host="23.251.151.188", port="3306", user="root", database="locaconne_schema"
 )
 # コネクションが切れた時に再接続してくれるよう設定
 conn.ping(reconnect=True)
@@ -32,93 +30,109 @@ conn.ping(reconnect=True)
 # SPARQLエンドポイントの設定
 sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
 
+
+# 除外ワードの設定
+# 参考：https://qiita.com/yineleyici/items/73296d4b7491bdb77cd0
+def WordVerification(text):
+    # 正規表現でカタカナを除外する
+    regex = "^[\u30a1-\u30fa\u30fc]+$"
+    match = re.match(regex, text)
+    if match:
+        return False
+
+    # リストに一致するワードを除外する
+    elif text in ["新開発", "日本", "関東", "関西", "東北", "東", "西", "南", "北"]:
+        return False
+
+    else:
+        return True
+
+
+# 地名だけ抽出する
+def PlaceExtracting(text):
+    # 形態素解析
+    mecab = MeCab.Tagger()
+    node = mecab.parseToNode(text)
+    locList = []
+    while node:
+        pos = node.feature.split(",")
+
+        # 除外ワードに引っかからなくてかつ地名であるとき
+        if WordVerification(node.surface) and pos[2] == "地名":
+            locList.append(node.surface)
+        node = node.next
+
+    return locList
+
+
 # 投稿フォーム表示用のエンドポイント
-@app.route("/post-form", methods=['GET'])
+@app.route("/post-form", methods=["GET"])
 def post_form():
     return render_template("post.html")
 
 # ユーザー投稿用のエンドポイント
-@app.route('/post', methods=['POST'])
+@app.route("/post", methods=["POST"])
 def post_content():
     data = request.form
-    text = data.get('text', '')
-    image = request.files.get('image')
+    username = data.get("username", "")
+    text = data.get("text", "")
+    image = request.files.get("image")
     image_url = ""
 
     # 画像をCloud Storageにアップロード
     if image:
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        hash_input = f"{image.filename}_{current_time}"
+        hashed_filename = hashlib.sha256(hash_input.encode()).hexdigest()
+
         bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(image.filename)
-        blob.upload_from_file(image)
-        image_url = f"https://storage.googleapis.com/{bucket_name}/{image.filename}"
+        blob = bucket.blob(hashed_filename)
+        blob.upload_from_file(image, content_type=image.content_type)
+        image_url = f"https://storage.googleapis.com/{bucket_name}/{hashed_filename}"
 
     # 場所名の抽出（自然言語処理）
-    doc = nlp(text)
-    locations = [ent.text for ent in doc.ents if ent.label_ == "GPE"]
-
-    # 抽出した場所をprintで表示
-    print(f"Extracted locations from text: {locations}")
-    
+    locations = PlaceExtracting(text)
 
     # 画像解析によるランドマーク検出
     landmarks = []
     if image_url:
-        vision_image = vision.Image()
-        vision_image.source.image_uri = image_url
-        response = vision_client.landmark_detection(image=vision_image)
-        for landmark in response.landmark_annotations:
-            landmarks.append(landmark.description)
-
-    # 画像解析で検出したランドマークをprintで表示
-    print(f"Detected landmarks from image: {landmarks}")
-
-    # 抽出した場所情報をもとにWikidataから詳細を取得
-    details = []
-    for location in locations + landmarks:
-        sparql.setQuery(f"""
-        SELECT ?item ?itemLabel ?description
-        WHERE {{
-          ?item wdt:P31/wdt:P279* wd:Q515;  # instance of city or town
-                rdfs:label "{location}"@ja.
-          SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en" }}
-        }}
-        LIMIT 1
-        """
-        )
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-        for result in results["results"]["bindings"]:
-            details.append({
-                "name": result["itemLabel"]["value"],
-                "description": result.get("description", {}).get("value", "No description available")
-            })
+        try:
+            vision_image = vision.Image()
+            vision_image.source.image_uri = image_url
+            image_context = vision.ImageContext(language_hints=['ja'])
+            response = vision_client.landmark_detection(image=vision_image, image_context=image_context)
+            if not response.error.message and response.landmark_annotations:
+                landmark = response.landmark_annotations[0]
+                landmarks.append(landmark.description)
+        except Exception as e:
+            print(f"Error in landmark detection: {e}")
 
     # データベースに投稿を保存
     cursor = conn.cursor()
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # 現在時刻を取得
-    sql = "INSERT INTO posts (text, image_url, time) VALUES (%s, %s, %s)"
-    val = (text, image_url, current_time)
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    sql = "INSERT INTO posts (username, text, image_url, time) VALUES (%s, %s, %s, %s)"
+    val = (username, text, image_url, current_time)
     cursor.execute(sql, val)
     conn.commit()
 
-    return jsonify({"status": "success", "details": details})
+    return jsonify({"status": "success"})
+
 
 # タイムライン表示用のエンドポイント
-@app.route("/timeline", methods=['GET'])
+@app.route("/timeline", methods=["GET"])
 def get_timeline():
-    # DB操作用にカーソルを作成
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM posts ORDER BY time DESC")
-    # 全てのデータを取得
+    cursor.execute("SELECT username, text, image_url, time FROM posts ORDER BY time DESC")
     posts = cursor.fetchall()
-    # タイムラインページをレンダリング
     return render_template("timeline.html", posts=posts)
+
 
 # リダイレクト
 @app.route("/")
 def main():
     return redirect("/timeline")
 
+
 # メイン関数
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
