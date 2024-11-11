@@ -24,7 +24,7 @@
             <!-- メッセージ入力 -->
             <div class="mb-3">
                 <label for="text" class="form-label">メッセージ</label>
-                <textarea class="form-control" id="text" name="text" rows="3" required></textarea>
+                <textarea class="form-control" id="text" name="text" rows="3"></textarea>
             </div>
             <!-- 画像アップロード -->
             <div class="mb-3">
@@ -48,9 +48,17 @@
             const text = document.getElementById('text').value;
             const image = document.getElementById('image').files[0];
             
+            // 入力のチェック
+            if (!text && !image) {
+                document.getElementById('result').innerHTML = `<div class="alert alert-danger">エラー: メッセージまたは写真のどちらかを入力してください。</div>`;
+                return;
+            }
+
             // フォームデータに追加
             formData.append('username', username);
-            formData.append('text', text);
+            if (text) {
+                formData.append('text', text);
+            }
             if (image) {
                 formData.append('image', image);
             }

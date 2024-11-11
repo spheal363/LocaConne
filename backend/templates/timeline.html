@@ -26,24 +26,27 @@
             <a href="/post-form" class="btn btn-primary">新規投稿</a>
         </div>
 
+        <!-- timeline.htmlの投稿部分 -->
         {% for post in posts %}
         <div class="card post-card">
             <div class="card-body">
                 <h5 class="card-title">{{ post.username }}の投稿</h5>
                 <p class="card-text">{{ post.text }}</p>
                 {% if post.image_url %}
-                    <img src="{{ post.image_url }}" alt="投稿画像" class="post-image">
+                    <a href="/post/{{ post.id | int }}">
+                        <img src="{{ post.image_url }}" alt="投稿画像" class="post-image">
+                    </a>
                 {% endif %}
                 <div class="post-details">
                     {% if post.time %}
                         <small class="text-muted">投稿日時: {{ post.time }}</small>
                     {% endif %}
                 </div>
+                <!-- 詳細ページへのリンク -->
+                <a href="/post/{{ post.id | int }}" class="btn btn-link">詳細を見る</a>
             </div>
         </div>
         {% endfor %}
-
-
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
