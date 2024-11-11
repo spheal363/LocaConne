@@ -1,9 +1,10 @@
 # 必要なモジュールのインポート
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, redirect
 import spacy
 from google.cloud import vision, storage
 import mysql.connector as mydb
 from SPARQLWrapper import SPARQLWrapper, JSON
+from datetime import datetime  # 追加
 
 # Flaskアプリケーションのセットアップ
 app = Flask(__name__)
@@ -15,8 +16,8 @@ nlp: spacy.Language = spacy.load('ja_ginza')
 vision_client = vision.ImageAnnotatorClient()
 
 # Cloud Storageのクライアント設定
-# storage_client = storage.Client()
-# bucket_name = "your-cloud-storage-bucket-name"
+storage_client = storage.Client()
+bucket_name = "your-cloud-storage-bucket-name"
 
 # コネクションの作成
 conn = mydb.connect(
@@ -25,14 +26,21 @@ conn = mydb.connect(
     user='root',
     database='locaconne_schema'
 )
+# コネクションが切れた時に再接続してくれるよう設定
+conn.ping(reconnect=True)
 
 # SPARQLエンドポイントの設定
 sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
 
+# 投稿フォーム表示用のエンドポイント
+@app.route("/post-form", methods=['GET'])
+def post_form():
+    return render_template("post.html")
+
 # ユーザー投稿用のエンドポイント
 @app.route('/post', methods=['POST'])
 def post_content():
-    data = request.json
+    data = request.form
     text = data.get('text', '')
     image = request.files.get('image')
     image_url = ""
@@ -51,9 +59,9 @@ def post_content():
     # 画像解析によるランドマーク検出
     landmarks = []
     if image_url:
-        image = vision.Image()
-        image.source.image_uri = image_url
-        response = vision_client.landmark_detection(image=image)
+        vision_image = vision.Image()
+        vision_image.source.image_uri = image_url
+        response = vision_client.landmark_detection(image=vision_image)
         for landmark in response.landmark_annotations:
             landmarks.append(landmark.description)
 
@@ -78,23 +86,31 @@ def post_content():
                 "description": result.get("description", {}).get("value", "No description available")
             })
 
-
     # データベースに投稿を保存
-    cursor = mydb.cursor()
-    sql = "INSERT INTO posts (text, image_url) VALUES (%s, %s)"
-    val = (text, image_url)
+    cursor = conn.cursor()
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # 現在時刻を取得
+    sql = "INSERT INTO posts (text, image_url, time) VALUES (%s, %s, %s)"
+    val = (text, image_url, current_time)
     cursor.execute(sql, val)
-    mydb.commit()
+    conn.commit()
 
     return jsonify({"status": "success", "details": details})
 
 # タイムライン表示用のエンドポイント
-@app.route('/timeline', methods=['GET'])
+@app.route("/timeline", methods=['GET'])
 def get_timeline():
-    cursor = mydb.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM posts ORDER BY created_at DESC")
+    # DB操作用にカーソルを作成
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM posts ORDER BY time DESC")
+    # 全てのデータを取得
     posts = cursor.fetchall()
-    return jsonify(posts)
+    # タイムラインページをレンダリング
+    return render_template("timeline.html", posts=posts)
+
+# リダイレクト
+@app.route("/")
+def main():
+    return redirect("/timeline")
 
 # メイン関数
 if __name__ == '__main__':
