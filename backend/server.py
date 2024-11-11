@@ -9,6 +9,7 @@ from datetime import datetime  # 追加
 # Flaskアプリケーションのセットアップ
 app = Flask(__name__)
 
+
 # spaCyのモデル読み込み
 nlp: spacy.Language = spacy.load('ja_ginza')
 
