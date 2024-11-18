@@ -6,13 +6,51 @@
     <title>投稿フォーム</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
     <style>
+        body {
+            background-color: #f5f8fa;
+        }
+        .navbar {
+            background-color: #1da1f2;
+        }
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
         .form-container {
             max-width: 600px;
             margin: 50px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .spinner-border {
+            display: none;
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3rem;
         }
     </style>
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light sticky-header">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">タイムライン</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/timeline">ホーム</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/post-form">新規投稿</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <div class="container form-container">
         <h1 class="my-4 text-center">新規投稿</h1>
         <form id="postForm">
@@ -32,7 +70,13 @@
                 <input class="form-control" type="file" id="image" name="image" accept="image/*">
             </div>
             <!-- 投稿ボタン -->
-            <button type="submit" class="btn btn-primary">投稿する</button>
+            <button type="submit" class="btn btn-primary w-100" id="submitButton">投稿する</button>
+            <!-- スピナー -->
+            <div class="text-center mt-3">
+                <div class="spinner-border text-primary" role="status" id="loadingSpinner">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
         </form>
         <!-- 結果表示 -->
         <div id="result" class="mt-4"></div>
@@ -47,7 +91,9 @@
             const username = document.getElementById('username').value;
             const text = document.getElementById('text').value;
             const image = document.getElementById('image').files[0];
-            
+            const submitButton = document.getElementById('submitButton');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
             // 入力のチェック
             if (!text && !image) {
                 document.getElementById('result').innerHTML = `<div class="alert alert-danger">エラー: メッセージまたは写真のどちらかを入力してください。</div>`;
@@ -62,6 +108,10 @@
             if (image) {
                 formData.append('image', image);
             }
+
+            // ボタンを無効化してスピナーを表示
+            submitButton.disabled = true;
+            loadingSpinner.style.display = 'inline-block';
 
             try {
                 // サーバーにデータを送信
@@ -84,6 +134,9 @@
                 }
             } catch (error) {
                 document.getElementById('result').innerHTML = `<div class="alert alert-danger">エラー: ${error.message}</div>`;
+                // ボタンを有効化してスピナーを非表示
+                submitButton.disabled = false;
+                loadingSpinner.style.display = 'none';
             }
         });
     </script>    
