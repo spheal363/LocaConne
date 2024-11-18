@@ -6,8 +6,12 @@ import mysql.connector as mydb
 from SPARQLWrapper import SPARQLWrapper, JSON
 from datetime import datetime
 import requests
-import wikipedia  # 追加
-import subprocess  # 追加
+import wikipedia
+import subprocess
+import mysql_maintenance
+from PIL import Image
+import io
+import random
 
 # Wikipediaの言語設定を日本語に設定
 wikipedia.set_lang("ja")
@@ -25,13 +29,6 @@ storage_client = storage.Client.from_service_account_json(
     "/home/sdoi/LocaConne/locaconne.json"
 )
 bucket_name = "locaconne_bucket"
-
-# コネクションの作成
-conn = mydb.connect(
-    host="23.251.151.188", port="3306", user="root", database="locaconne_schema"
-)
-# コネクションが切れた時に再接続してくれるよう設定
-conn.ping(reconnect=True)
 
 # SPARQLエンドポイントの設定
 sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
@@ -53,8 +50,6 @@ def WordVerification(text):
         return False
     else:
         return True
-
-
 
 # 地名だけ抽出する
 def PlaceExtracting(text):
@@ -78,8 +73,6 @@ def PlaceExtracting(text):
         node = node.next
 
     return locList
-
-
 
 # Wikidata APIを使用して地名から場所の情報を取得
 def get_location_details(location):
@@ -135,7 +128,6 @@ def get_location_details(location):
         print(f"Error in get_location_details: {e}")
         return None, None, None
 
-
 # QIDから座標情報を取得
 def get_coordinates_from_qid(qid):
     sparql.setQuery(f"""
@@ -155,8 +147,6 @@ def get_coordinates_from_qid(qid):
     
     return None
 
-
-
 # Wikipediaの概要を取得
 def get_wikipedia_summary(place_label):
     try:
@@ -172,8 +162,6 @@ def get_wikipedia_summary(place_label):
         print(f"Error getting Wikipedia summary for {place_label}: {e}")
         return None
 
-
-
 # 地名の情報をlocation_detailsテーブルに保存する関数
 def save_location_details(post_id, location):
     place_label, description, coordinate = get_location_details(location)
@@ -181,6 +169,7 @@ def save_location_details(post_id, location):
         try:
             # Wikipediaの概要を取得
             wikipedia_summary = get_wikipedia_summary(place_label)
+            conn = mysql_maintenance.create_mysql_connection()  # 接続を作成
             cursor = conn.cursor()
             sql = """
                 INSERT INTO location_details (post_id, location, description, coordinate, wikipedia_summary)
@@ -190,17 +179,73 @@ def save_location_details(post_id, location):
             cursor.execute(sql, val)
             conn.commit()
             cursor.close()
+            conn.close()  # 接続を切断
             print(f"Location details saved for post ID {post_id}")
         except mydb.Error as e:
             print(f"Error saving location details: {e}")
-
 
 # 投稿フォーム表示用のエンドポイント
 @app.route("/post-form", methods=["GET"])
 def post_form():
     return render_template("post.html")
 
+# 画像解析によるランドマーク検出
+def detect_landmark(image_url):
+    try:
+        vision_image = vision.Image()
+        vision_image.source.image_uri = image_url
+        image_context = vision.ImageContext(language_hints=["ja"])
+        response = vision_client.landmark_detection(
+            image=vision_image, image_context=image_context
+        )
+        if not response.error.message and response.landmark_annotations:
+            return response.landmark_annotations[0].description
+    except Exception as e:
+        print(f"Error in landmark detection: {e}")
+    return None
 
+def modify_image(image_url):
+    """
+    画像のサイズを変更する関数
+    :param image_url: 画像のURL
+    :param size: 新しいサイズ (幅, 高さ)
+    :return: 新しい画像のURL
+    """
+    try:
+        # 画像をダウンロード
+        response = requests.get(image_url)
+        response.raise_for_status()
+        image_data = response.content
+
+        # 画像を開く
+        image = Image.open(io.BytesIO(image_data))
+        
+        original_width, original_height = image.size
+        new_width = random.randint(640, original_width)
+        new_height = random.randint(480, original_height)
+        size = (new_width, new_height)
+
+        # 画像のサイズを変更
+        image = image.resize(size, Image.LANCZOS)
+
+        # 新しいファイル名を生成
+        new_filename = f"modified_{hashlib.sha256(image_data).hexdigest()}.jpg"
+
+        # 変更した画像をCloud Storageにアップロード
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(new_filename)
+        image_byte_array = io.BytesIO()
+        image.save(image_byte_array, format='JPEG')
+        blob.upload_from_string(image_byte_array.getvalue(), content_type='image/jpeg')
+
+        # 新しい画像のURLを返す
+        new_image_url = f"https://storage.googleapis.com/{bucket_name}/{new_filename}"
+        return new_image_url
+
+    except Exception as e:
+        print(f"Error in modify_image: {e}")
+        return None
+    
 # ユーザー投稿用のエンドポイント
 @app.route("/post", methods=["POST"])
 def post_content():
@@ -209,6 +254,7 @@ def post_content():
     text = data.get("text", "")
     image = request.files.get("image")
     image_url = ""
+    original_image_url = ""
 
     # 画像をCloud Storageにアップロード
     if image:
@@ -220,34 +266,33 @@ def post_content():
         blob = bucket.blob(hashed_filename)
         blob.upload_from_file(image, content_type=image.content_type)
         image_url = f"https://storage.googleapis.com/{bucket_name}/{hashed_filename}"
+        original_image_url = image_url  # オリジナルの画像URLを保存
 
     # 場所名の抽出（自然言語処理）
     locations = PlaceExtracting(text)
     print(locations)
 
-    # 画像解析によるランドマーク検出
+    # 画像解析によるランドマーク検出を最大4回試行
     landmark = None
-    if image_url:
-        try:
-            vision_image = vision.Image()
-            vision_image.source.image_uri = image_url
-            image_context = vision.ImageContext(language_hints=["ja"])
-            response = vision_client.landmark_detection(
-                image=vision_image, image_context=image_context
-            )
-            if not response.error.message and response.landmark_annotations:
-                landmark = response.landmark_annotations[0].description
-        except Exception as e:
-            print(f"Error in landmark detection: {e}")
+    for attempt in range(10):
+        if image_url:
+            landmark = detect_landmark(image_url)
+            if landmark:
+                break
+            # 画像の一部を変更する処理を追加（例：サイズ変更）
+            image_url = modify_image(image_url)
 
     # データベースに投稿を保存
+    conn = mysql_maintenance.create_mysql_connection()  # 接続を作成
     cursor = conn.cursor()
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sql = "INSERT INTO posts (username, text, image_url, time) VALUES (%s, %s, %s, %s)"
-    val = (username, text, image_url, current_time)
+    val = (username, text, original_image_url, current_time)  # オリジナルの画像URLを保存
     cursor.execute(sql, val)
     conn.commit()
     post_id = cursor.lastrowid  # 保存した投稿のIDを取得
+    cursor.close()
+    conn.close()  # 接続を切断
 
     # 地名情報を取得して保存
     selected_location = None
@@ -268,21 +313,27 @@ def post_content():
 
     return jsonify({"status": "success"})
 
-
-
 # タイムライン表示用のエンドポイント
 @app.route("/timeline", methods=["GET"])
 def get_timeline():
+    conn = mysql_maintenance.create_mysql_connection()  # 接続を作成
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        "SELECT id, username, text, image_url, time FROM posts ORDER BY time DESC"
+        """
+        SELECT p.id, p.username, p.text, p.image_url, p.time, ld.wikipedia_summary
+        FROM posts p
+        LEFT JOIN location_details ld ON p.id = ld.post_id
+        ORDER BY p.time DESC
+        """
     )
     posts = cursor.fetchall()
+    cursor.close()
+    conn.close()  # 接続を切断
     return render_template("timeline.html", posts=posts)
-
 
 @app.route('/post/<int:post_id>', methods=['GET'])
 def post_details(post_id):
+    conn = mysql_maintenance.create_mysql_connection()  # 接続を作成
     cursor = conn.cursor(dictionary=True)
     # 投稿内容を取得
     cursor.execute("SELECT * FROM posts WHERE id = %s", (post_id,))
@@ -293,6 +344,9 @@ def post_details(post_id):
         FROM location_details WHERE post_id = %s
     """, (post_id,))
     location = cursor.fetchone()
+    cursor.close()
+    conn.close()  # 接続を切断
+
     description = location['description'] if location else None
     coordinate = location['coordinate'] if location else None
     wikipedia_summary = location['wikipedia_summary'] if location else None
@@ -308,7 +362,6 @@ def post_details(post_id):
 @app.route("/")
 def main():
     return redirect("/timeline")
-
 
 # メイン関数
 if __name__ == "__main__":
