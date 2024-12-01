@@ -46,7 +46,7 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ---
 
-## セットアップ手順（一部省略）
+## セットアップ手順
 
 ### 1. リポジトリのクローン
 ```bash
@@ -55,6 +55,21 @@ $ cd LocaConne
 ```
 
 ### 2.必要なPythonパッケージのインストール
+```sh
+pip install Flask
+pip install mecab-python3
+pip install unidic-lite
+pip install google-cloud
+pip install google-cloud-vision
+pip install google-cloud-storage
+pip install mysql-connector-python
+pip install SPARQLWrapper
+pip install requests
+pip install wikipedia
+pip install pillow
+pip install mysql-connector-python
+```
+
 ### 3.MeCabとNEologd辞書のインストール
 ```bash
 $ sudo apt update
