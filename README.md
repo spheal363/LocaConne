@@ -55,7 +55,7 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ---
 
-## セットアップ手順
+## 以下はローカルで試してみたい方へのセットアップ手順
 
 ### 1. リポジトリのクローン
 ```bash
@@ -120,15 +120,14 @@ CREATE TABLE location_details (
   - Vision API
   - Cloud Storage
 - サービスアカウントキーを取得し、プロジェクトフォルダに配置
-  - ファイル名: locaconne.json
+  - ファイル名: `locaconne.json`
  
 ### 6.Flaskアプリケーションの起動
 ```bash
-$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/locaconne.json"
-$ python app.py
+python app.py
 ```
 
-ブラウザで以下のURLにアクセスして動作確認を行います。
+ブラウザで以下のURLにアクセスすることでローカルで試すことができます！
 http://localhost:5000
 
 --- 
