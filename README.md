@@ -72,11 +72,11 @@ pip install mysql-connector-python
 
 ### 3.MeCabとNEologd辞書のインストール
 ```bash
-$ sudo apt update
-$ sudo apt install mecab libmecab-dev mecab-ipadic-utf8
-$ git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git
-$ cd mecab-ipadic-neologd
-$  ./bin/install-mecab-ipadic-neologd -n -y
+sudo apt update
+sudo apt install mecab libmecab-dev mecab-ipadic-utf8
+git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git
+cd ~./mecab-ipadic-neologd
+sudo bin/install-mecab-ipadic-neologd
 ```
 ### 4.MySQLデータベースのセットアップ
 ```sql
