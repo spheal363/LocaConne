@@ -1,9 +1,17 @@
-# LocaConne
-「地域（LOCAL）」×「つながる（CONNECT）」 = ろかこね  
+# 「地域（LOCAL）」×「つながる（CONNECT）」 = ろかこね
 地域に関する情報を共有し、ユーザー同士でつながることを目的としたウェブアプリケーションです。  
 Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユーザーが投稿したテキストや画像から自動的に地名を抽出し、その場所の詳細情報を提供します。
 
 こちらからアクセスできます！👉[ろかこねを試す](https://locaconne.net/timeline)
+
+## ろかこねについてさらに詳しく知りたい方向け
+<details>
+<summary>資料を表示</summary>
+  
+![第6回_page-0001](https://github.com/user-attachments/assets/10cdee9d-0f72-4407-a8d5-4e29f11329c1)
+
+</details>
+
 ---
 
 ## 作成環境
