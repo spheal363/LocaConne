@@ -4,7 +4,7 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 こちらからアクセスできます！👉[ろかこねを試す](https://locaconne.net/timeline)
 
-## ろかこねについてさらに詳しく知りたい方向け
+## さらに詳しく知りたい人向け
 <details>
 <summary>資料を表示</summary>
   
