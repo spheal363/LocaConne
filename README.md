@@ -59,8 +59,8 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ### 1. リポジトリのクローン
 ```bash
-$ git clone <repository-url>
-$ cd LocaConne
+git clone <repository-url>
+cd LocaConne
 ```
 
 ### 2.必要なPythonパッケージのインストール
