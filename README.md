@@ -1,10 +1,10 @@
-# 「地域（LOCAL）」×「つながる（CONNECT）」 = ろかこね
+# 🌎「地域（LOCAL）」×「つながる（CONNECT）」 = ろかこね
 地域に関する情報を共有し、ユーザー同士でつながることを目的としたウェブアプリケーションです。  
 Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユーザーが投稿したテキストや画像から自動的に地名を抽出し、その場所の詳細情報を提供します。
 
 こちらからアクセスできます！👉[ろかこねを試す](https://locaconne.net/timeline)
 
-## さらに詳しく知りたい人向け
+## 📝さらに詳しく知りたい人向け
 <details>
 <summary>資料を表示</summary>
   
@@ -14,7 +14,7 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ---
 
-## 作成環境
+## ⚙作成環境
 
 - **OS**: Ubuntu 22.04 LTS
 - **プログラミング言語**: Python 3.10
@@ -35,7 +35,7 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ---
 
-## プロジェクト概要
+## 💻プロジェクト概要
 
 ### 機能
 1. **ユーザー投稿**
@@ -55,7 +55,7 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ---
 
-## 以下はローカルで試してみたい方へのセットアップ手順
+## 👪以下はローカルで試してみたい方へのセットアップ手順
 
 ### 1. リポジトリのクローン
 ```bash
@@ -131,7 +131,7 @@ python app.py
 http://localhost:5000
 
 --- 
-## 使用例
+## 👨‍💻使用例
 1. 投稿フォーム (/post-form)
 ユーザーはテキストと画像を投稿できます。
 - 例: 「先週、京都に行ってきました！」
