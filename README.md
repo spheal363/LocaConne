@@ -1,11 +1,20 @@
-# LocaConne
-「地域（LOCAL）」×「つながる（CONNECT）」 = ろかこね  
+# 🌎「地域（LOCAL）」×「つながる（CONNECT）」 = ろかこね
 地域に関する情報を共有し、ユーザー同士でつながることを目的としたウェブアプリケーションです。  
 Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユーザーが投稿したテキストや画像から自動的に地名を抽出し、その場所の詳細情報を提供します。
 
+こちらからアクセスできます！👉[ろかこねを試す](https://locaconne.net/timeline)
+
+## 📝さらに詳しく知りたい人向け
+<details>
+<summary>資料を表示</summary>
+  
+![第6回_page-0001](https://github.com/user-attachments/assets/10cdee9d-0f72-4407-a8d5-4e29f11329c1)
+
+</details>
+
 ---
 
-## 作成環境
+## ⚙作成環境
 
 - **OS**: Ubuntu 22.04 LTS
 - **プログラミング言語**: Python 3.10
@@ -26,7 +35,7 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ---
 
-## プロジェクト概要
+## 💻プロジェクト概要
 
 ### 機能
 1. **ユーザー投稿**
@@ -46,12 +55,12 @@ Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユ
 
 ---
 
-## セットアップ手順
+## 👪以下はローカルで試してみたい方へのセットアップ手順
 
 ### 1. リポジトリのクローン
 ```bash
-$ git clone <repository-url>
-$ cd LocaConne
+git clone <repository-url>
+cd LocaConne
 ```
 
 ### 2.必要なPythonパッケージのインストール
@@ -72,11 +81,12 @@ pip install mysql-connector-python
 
 ### 3.MeCabとNEologd辞書のインストール
 ```bash
-$ sudo apt update
-$ sudo apt install mecab libmecab-dev mecab-ipadic-utf8
-$ git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git
-$ cd mecab-ipadic-neologd
-$  ./bin/install-mecab-ipadic-neologd -n -y
+cd ~
+sudo apt update
+sudo apt install mecab libmecab-dev mecab-ipadic-utf8
+git clone --depth 1 https://github.com/neologd/mecab-ipadic-neologd.git
+cd mecab-ipadic-neologd
+sudo bin/install-mecab-ipadic-neologd
 ```
 ### 4.MySQLデータベースのセットアップ
 ```sql
@@ -110,19 +120,18 @@ CREATE TABLE location_details (
   - Vision API
   - Cloud Storage
 - サービスアカウントキーを取得し、プロジェクトフォルダに配置
-  - ファイル名: locaconne.json
+  - ファイル名: `locaconne.json`
  
 ### 6.Flaskアプリケーションの起動
 ```bash
-$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/locaconne.json"
-$ python app.py
+python app.py
 ```
 
-ブラウザで以下のURLにアクセスして動作確認を行います。
+ブラウザで以下のURLにアクセスすることでローカルで試すことができます！
 http://localhost:5000
 
 --- 
-## 使用例
+## 👨‍💻使用例
 1. 投稿フォーム (/post-form)
 ユーザーはテキストと画像を投稿できます。
 - 例: 「先週、京都に行ってきました！」
