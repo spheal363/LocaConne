@@ -2,7 +2,8 @@
 地域に関する情報を共有し、ユーザー同士でつながることを目的としたウェブアプリケーションです。  
 Flask、Google Cloud API、MySQL、Wikidata、Wikipedia APIを活用して、ユーザーが投稿したテキストや画像から自動的に地名を抽出し、その場所の詳細情報を提供します。
 
-こちらからアクセスできます！👉[ろかこねを試す](https://locaconne.net/timeline)
+~~こちらからアクセスできます！👉[ろかこねを試す](https://locaconne.net/timeline)~~
+→ 現在、Vercel への移行を進めております。リニューアル後の公開をお待ちください。
 
 ## 📝さらに詳しく知りたい人向け
 <details>
